@@ -4,6 +4,7 @@ import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.util.Collector;
@@ -16,7 +17,8 @@ public class SocketWindowWordCount {
     public static void main(String[] args) throws Exception {
 
         // the port to connect to
-        final int port;
+        final int port = 9000;
+        /*
         try {
             final ParameterTool params = ParameterTool.fromArgs(args);
             port = params.getInt("port");
@@ -24,6 +26,7 @@ public class SocketWindowWordCount {
             System.err.println("No port specified. Please run 'SocketWindowWordCount --port <port>'");
             return;
         }
+        */
 
         // get the execution environment
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -31,6 +34,7 @@ public class SocketWindowWordCount {
         // get input data by connecting to the socket
         DataStream<String> text = env.socketTextStream("172.23.7.3", port, "\n");
 
+        System.out.println(text);
         // parse the data, group it, window it, and aggregate the counts
         DataStream<WordWithCount> windowCounts = text
                 .flatMap(new FlatMapFunction<String, WordWithCount>() {
@@ -42,9 +46,8 @@ public class SocketWindowWordCount {
                     }
                 })
                 .keyBy("word")
-                .timeWindow(Time.seconds(5), Time.seconds(1))
+                .timeWindow(Time.seconds(5), Time.seconds(5))
                 .reduce(new ReduceFunction<WordWithCount>() {
-                    @Override
                     public WordWithCount reduce(WordWithCount a, WordWithCount b) {
                         return new WordWithCount(a.word, a.count + b.count);
                     }
